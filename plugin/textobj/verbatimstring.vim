@@ -44,7 +44,7 @@ function! s:prev_is(ch)
     return s:char(a:ch, 2, 0)
 endfunction
 
-function! s:select_rawstring_a()
+function! s:select_verbatimstring_a()
     let saved_pos = getpos('.')
     while (s:prev_is('"') && s:curr_is('"')) || s:curr_isnot('"')
         normal! f"
@@ -71,7 +71,7 @@ function! s:select_rawstring_a()
         if head_pos[2] + 1 == tail_pos[2]
             " Cursor is left side of the verbatim-string.
             normal! 2l
-            return s:select_rawstring_a()
+            return s:select_verbatimstring_a()
         else
             return ['v', head_pos, tail_pos]
         endif
@@ -81,8 +81,8 @@ function! s:select_rawstring_a()
     endif
 endfunction
 
-function! s:select_rawstring_i()
-    let xs = s:select_rawstring_a()
+function! s:select_verbatimstring_i()
+    let xs = s:select_verbatimstring_a()
     if type(xs) == type([])
         let v = xs[0]
         let head_pos = xs[1]
