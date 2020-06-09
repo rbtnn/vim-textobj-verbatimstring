@@ -15,53 +15,10 @@ call textobj#user#plugin('verbatimstring', {
     \   }
     \ })
 
-function! s:parse_line(xs)
-    let pairs = []
-    let last = len(a:xs) - 1
-    let j = 0
-    while j <= last
-        if ('@' == a:xs[j]) && ('"' == get(a:xs, j + 1, ''))
-            let k = j + 2
-            while k <= last
-                if '"' == a:xs[k]
-                    if '"' == get(a:xs, k + 1, '')
-                        let k += 2
-                    else
-                        let pairs += [{
-                            \ 'begin_idx' : j,
-                            \ 'end_idx' : k,
-                            \ 'begin_col' : len(join(a:xs[:j] ,'')),
-                            \ 'end_col' : len(join(a:xs[:k], '')),
-                            \ }]
-                        let j = k
-                        break
-                    endif
-                else
-                    let k += 1
-                endif
-            endwhile
-        elseif '"' == a:xs[j]
-            let k = j + 1
-            while k <= last
-                if '\' == a:xs[k]
-                    let k += 2
-                elseif '"' == a:xs[k]
-                    let j = k
-                    break
-                else
-                    let k += 1
-                endif
-            endwhile
-        endif
-        let j += 1
-    endwhile
-    return pairs
-endfunction
-
 function! s:select_verbatimstring_a()
     let line = getline('.')
     let xs = split(line, '\zs')
-    let pairs = s:parse_line(xs)
+    let pairs = verbatimstring#parse(xs)
     let col = col('.')
 
     for pair in pairs
