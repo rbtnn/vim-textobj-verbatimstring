@@ -22,10 +22,8 @@ function! s:select_verbatimstring_a()
     let col = col('.')
 
     for pair in pairs
-        if col < pair.begin_col
-            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, 0]]
-        elseif (pair.begin_col <= col) && (col <= pair.end_col)
-            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, 0]]
+        if (a:col < pair.begin_col) || ((pair.begin_col <= col) && (col <= pair.end_col))
+            return ['v', [0, line('.'), pair.begin_col, 0], [0, line('.'), pair.end_col, 0]]
         endif
     endfor
 

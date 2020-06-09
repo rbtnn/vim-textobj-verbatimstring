@@ -16,8 +16,6 @@ function! verbatimstring#parse(xs) abort
                         let k += 2
                     else
                         let pairs += [{
-                            \ 'begin_idx' : j,
-                            \ 'end_idx' : k,
                             \ 'begin_col' : len(join(a:xs[:j] ,'')),
                             \ 'end_col' : len(join(a:xs[:k], '')),
                             \ }]
@@ -46,12 +44,66 @@ function! verbatimstring#parse(xs) abort
     return pairs
 endfunction
 
+function! verbatimstring#run_test(line, col, expected) abort
+    let actual = []
+    try
+        new
+        call setline(1, a:line)
+        for pair in verbatimstring#parse(split(getline('.'), '\zs'))
+            if (a:col < pair.begin_col) || ((pair.begin_col <= a:col) && (a:col <= pair.end_col))
+                call setpos('.', [0, line('.'), pair.begin_col, 0])
+                call feedkeys('v', 'nx')
+                call setpos('.', [0, line('.'), pair.end_col, 0])
+                call feedkeys('"*y', 'nx')
+                let actual = [@*]
+                break
+            endif
+        endfor
+    finally
+        quit!
+    endtry
+    call assert_equal(actual, a:expected)
+endfunction
+
 function! verbatimstring#run_tests() abort
     if filereadable(s:TEST_LOG)
         call delete(s:TEST_LOG)
     endif
 
     let v:errors = []
+
+    let line = ''
+    call verbatimstring#run_test(line, 1, [])
+
+    let line = ' @"" '
+    for col in range(1, 4)
+        call verbatimstring#run_test(line, col, ['@""'])
+    endfor
+    call verbatimstring#run_test(line, 5, [])
+
+    let line = ' @"abc" '
+    for col in range(1, 7)
+        call verbatimstring#run_test(line, col, ['@"abc"'])
+    endfor
+    call verbatimstring#run_test(line, 8, [])
+
+    let line = ' @"""a@""b\" '
+    for col in range(1, 12)
+        call verbatimstring#run_test(line, col, ['@"""a@""b\"'])
+    endfor
+    call verbatimstring#run_test(line, 13, [])
+
+    let line = ' @"x" "\n" @"y" "\"" @"z" '
+    for col in range(1, 5)
+        call verbatimstring#run_test(line, col, ['@"x"'])
+    endfor
+    for col in range(6, 15)
+        call verbatimstring#run_test(line, col, ['@"y"'])
+    endfor
+    for col in range(16, 25)
+        call verbatimstring#run_test(line, col, ['@"z"'])
+    endfor
+    call verbatimstring#run_test(line, 26, [])
 
     if !empty(v:errors)
         call writefile(v:errors, s:TEST_LOG)
@@ -62,4 +114,6 @@ function! verbatimstring#run_tests() abort
         endfor
     endif
 endfunction
+
+call verbatimstring#run_tests()
 
