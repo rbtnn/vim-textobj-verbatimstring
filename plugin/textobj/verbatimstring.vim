@@ -17,21 +17,21 @@ call textobj#user#plugin('verbatimstring', {
 
 function! s:parse_line(xs)
     let pairs = []
-    let last = len(a:xs) - 2
+    let last = len(a:xs) - 1
     let j = 0
     while j <= last
-        if ('@' == a:xs[j]) && ('"' == a:xs[j + 1])
+        if ('@' == a:xs[j]) && ('"' == get(a:xs, j + 1, ''))
             let k = j + 2
             while k <= last
                 if '"' == a:xs[k]
-                    if '"' == a:xs[k + 1]
+                    if '"' == get(a:xs, k + 1, '')
                         let k += 2
                     else
                         let pairs += [{
                             \ 'begin_idx' : j,
                             \ 'end_idx' : k,
-                            \ 'begin_col' : strdisplaywidth(join(a:xs[:j] ,'')),
-                            \ 'end_col' : strdisplaywidth(join(a:xs[:k], '')),
+                            \ 'begin_col' : len(join(a:xs[:j] ,'')),
+                            \ 'end_col' : len(join(a:xs[:k], '')),
                             \ }]
                         let j = k
                         break
@@ -66,9 +66,9 @@ function! s:select_verbatimstring_a()
 
     for pair in pairs
         if col < pair.begin_col
-            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, -1]]
+            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, 0]]
         elseif (pair.begin_col <= col) && (col <= pair.end_col)
-            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, -1]]
+            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, 0]]
         endif
     endfor
 
