@@ -105,6 +105,12 @@ function! verbatimstring#run_tests() abort
     endfor
     call verbatimstring#run_test(line, 26, [])
 
+    let line = 'あaいbうcえdおe @"xyz" '
+    for col in range(1, 27)
+        call verbatimstring#run_test(line, col, ['@"xyz"'])
+    endfor
+    call verbatimstring#run_test(line, 28, [])
+
     if !empty(v:errors)
         call writefile(v:errors, s:TEST_LOG)
         for err in v:errors
