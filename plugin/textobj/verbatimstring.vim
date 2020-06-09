@@ -15,70 +15,64 @@ call textobj#user#plugin('verbatimstring', {
     \   }
     \ })
 
-function! s:char(ch, n, isnot)
-    let i = getpos('.')[2] - a:n
-    if 0 <= i && i < col('$') - 2
-        if a:isnot
-            return getline('.')[i] != a:ch
-        else
-            return getline('.')[i] == a:ch
+function! s:parse_line(xs)
+    let pairs = []
+    let last = len(a:xs) - 2
+    let j = 0
+    while j <= last
+        if ('@' == a:xs[j]) && ('"' == a:xs[j + 1])
+            let k = j + 2
+            while k <= last
+                if '"' == a:xs[k]
+                    if '"' == a:xs[k + 1]
+                        let k += 2
+                    else
+                        let pairs += [{
+                            \ 'begin_idx' : j,
+                            \ 'end_idx' : k,
+                            \ 'begin_col' : strdisplaywidth(join(a:xs[:j] ,'')),
+                            \ 'end_col' : strdisplaywidth(join(a:xs[:k], '')),
+                            \ }]
+                        let j = k
+                        break
+                    endif
+                else
+                    let k += 1
+                endif
+            endwhile
+        elseif '"' == a:xs[j]
+            let k = j + 1
+            while k <= last
+                if '\' == a:xs[k]
+                    let k += 2
+                elseif '"' == a:xs[k]
+                    let j = k
+                    break
+                else
+                    let k += 1
+                endif
+            endwhile
         endif
-    else
-        return 0
-    endif
-endfunction
-
-function! s:curr_isnot(ch)
-    return s:char(a:ch, 1, 1)
-endfunction
-
-function! s:curr_is(ch)
-    return s:char(a:ch, 1, 0)
-endfunction
-
-function! s:next_is(ch)
-    return s:char(a:ch, 0, 0)
-endfunction
-
-function! s:prev_is(ch)
-    return s:char(a:ch, 2, 0)
+        let j += 1
+    endwhile
+    return pairs
 endfunction
 
 function! s:select_verbatimstring_a()
-    let saved_pos = getpos('.')
-    while (s:prev_is('"') && s:curr_is('"')) || s:curr_isnot('"')
-        normal! f"
-        if saved_pos == getpos('.')
-            break
+    let line = getline('.')
+    let xs = split(line, '\zs')
+    let pairs = s:parse_line(xs)
+    let col = col('.')
+
+    for pair in pairs
+        if col < pair.begin_col
+            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, -1]]
+        elseif (pair.begin_col <= col) && (col <= pair.end_col)
+            return ['v', [0, line('.'), pair.begin_col, -1], [0, line('.'), pair.end_col, -1]]
         endif
-    endwhile
-    while s:next_is('"')
-        normal! lf"
-    endwhile
-    if s:curr_is('"')
-        let tail_pos = getpos('.')
-        normal! F"
-        while s:prev_is('"')
-            normal! hF"
-        endwhile
-    else
-        " Cursor is right side of the verbatim-string or verbatim-string no exists.
-        return 0
-    endif
-    if s:prev_is('@')
-        normal! h
-        let head_pos = getpos('.')
-        if head_pos[2] + 1 == tail_pos[2]
-            " Cursor is left side of the verbatim-string.
-            normal! 2l
-            return s:select_verbatimstring_a()
-        else
-            return ['v', head_pos, tail_pos]
-        endif
-    else
-        " It's not verbatim-string.
-        return 0
-    endif
+    endfor
+
+    return 0
 endfunction
 
 function! s:select_verbatimstring_i()
