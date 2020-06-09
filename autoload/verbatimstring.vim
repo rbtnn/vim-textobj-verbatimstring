@@ -115,5 +115,3 @@ function! verbatimstring#run_tests() abort
     endif
 endfunction
 
-call verbatimstring#run_tests()
-
